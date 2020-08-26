@@ -1,25 +1,114 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
 
-
+# Course Proyect
 ## Loading and preprocessing the data
 
+For processing data, first, We go to load the data from [https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip]
 
+```{r}
+file = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(file,destfile = "activity.zip",method = "curl")
+unzip("activity.zip")
+act <- read.csv("activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r, echo=TRUE}
+library(dplyr)
+sub <- select(act, date,steps)
+sub <- group_by(sub,date)
+stpfday <- summarise(sub,steps = sum(steps,na.rm = TRUE))
+stpfday <- as.data.frame(stpfday)
+stpfday
+```
 
+The grap:
+```{r, echo=TRUE}
+barplot(stpfday$steps,xlab = "Date  [0-60] days",ylab = "Steps",main = "Total Number of Steps taken each day")
+```
 
+The mean and median of steps for day
+```{r, echo=TRUE}
+eachday <- summarise(sub,meanfday = mean(steps,na.rm = TRUE),medianfday = median(steps,na.rm = TRUE))
+eachday <- as.data.frame(eachday)
+eachday
+```
 ## What is the average daily activity pattern?
 
+```{r, echo=TRUE}
+meanday <- eachday$meanfday
+meanday[is.nan(meanday)] <- 0
+plot(1:length(stpfday$date),meanday,type = "l",xlab = "Interval for Days",ylab = "Averaged across all days",main = "The Average daily activity pattern")
+```
 
+Max. steps
+```{r, echo=TRUE}
+maxMeanSteps <- max(eachday$meanfday,na.rm = TRUE)
+results <- eachday[c(1,2)][eachday[2] == maxMeanSteps]
+results <- results[!is.na(results)]
+results
+```
 
 ## Imputing missing values
+```{r, echo=TRUE}
+missingValues <- is.na(act$steps)
+missingValues <- summary(missingValues)[[3]]
+#
+missingValues
+```
 
+Change of values "NA" to "0"
+```{r, echo=TRUE}
+act2 <- act
+act2[1][is.na(act2$steps),] <- 0
+```
+New dataset 
+```{r}
+head(act2)
+```
 
-
+The grap ~ grap before
+```{r}
+sub2 <- select(act2, date,steps)
+sub2 <- group_by(sub2,date)
+stpfday2 <- summarise(sub2,steps = sum(steps))
+stpfday2 <- as.data.frame(stpfday)
+barplot(stpfday2$steps,xlab = "Date  [0-60] days",ylab = "Steps",main = "Total Number of Steps taken each day")
+```
+and the mean and the median 
+```{r}
+eachday2 <- summarise(sub2,meanfday = mean(steps),medianfday = median(steps))
+eachday2 <- as.data.frame(eachday2)
+eachday2
+```
 ## Are there differences in activity patterns between weekdays and weekends?
+Yes, there are differences.
+Show the new datasets
+```{r}
+dates <- as.Date(act$date)
+weekd <- c(1:length(dates))
+for(i in 1:length(dates)){
+    if(weekdays(dates[i]) == "sábado" | weekdays(dates[i]) == "domingo"){
+        weekd[i] <- "Weekend"
+    }else{ weekd[i] <- "Weekday"}    
+}
+weekd <- factor(weekd,levels = c("Weekend","Weekday"))
+act <- cbind(act,as.data.frame(weekd))
+head(act)
+```
+
+Show the grap
+
+```{r}
+dat1<- act%>%
+        filter(weekd =="Weekday")
+dat2<- act%>%
+        filter(weekd =="Weekend")
+#
+par(mfrow = c(2,1))
+plot(dat1$interval,dat1$steps,type = "l",xlab = "Interval", ylab = "Steps")
+plot(dat2$interval,dat2$steps,type = "l",xlab = "Interval", ylab = "Steps")
+```
+
+```{r echo=FALSE}
+dev.off()
